@@ -1,6 +1,8 @@
 var TYPE_TO_FIELDS_MAPPING = {
   submitted: ['id', 'permalink', 'created', 'title', 'score', 'subreddit'],
-  comments: ['id', 'link_url', 'created', 'subreddit', 'link_title', 'body']
+  comments: ['id', 'link_url', 'created', 'subreddit', 'link_title', 'body'],
+  upvoted: ['id', 'permalink', 'created', 'subreddit', 'title'],
+  downvoted: ['id', 'permalink', 'created', 'subreddit', 'title']
 };
 var CELL_SIZE = 14;
 var NUMBER_OF_COLORS = 6;
@@ -13,11 +15,11 @@ $(document).ready(function() {
   $('.js-user-field').val(search.user);
 
   fetchRedditData(search.user)
-    .done(function(posts, comments) {
-      if (!posts.length && !comments.length) return showEmptyMessage();
-      var data = formatData({ posts, comments });
+    .done(function(posted, comments, upvoted, downvoted) {
+      if (!posted.length && !comments.length && !upvoted.length && !downvoted.length) return showEmptyMessage();
+      var data = formatData({ posted, comments, upvoted, downvoted });
       $('.js-spinner').toggleClass('hidden', true);
-      if (!data) return showEmptyMessage();
+      if (!data || data.startDate.toString() === 'Invalid Date') return showEmptyMessage();
 
       var yearFormat = d3.timeFormat('%Y');
       var startYear = yearFormat(data.startDate);
@@ -25,11 +27,16 @@ $(document).ready(function() {
       createHeatMap(data, startYear, endYear);
     })
     .fail(function(err) {
+      $('.js-spinner').toggleClass('hidden', true);
       console.log(err);
     });
 
 });
 
+/**
+ * Converts the URL search parameters into a js object.
+ * @return {Object}
+ */
 function getSearchParameters() {
    var search = window.location.search;
    // If the url doesn't have the username, then return.
@@ -43,10 +50,14 @@ function getSearchParameters() {
    return obj;
 }
 
-
+/**
+ * Makes all the necessary API calls to fetch the data.
+ * @param  {String} user
+ * @return {Promise}
+ */
 function fetchRedditData(user) {
   // TODO(Vincent) Add upvoted and downvoted data.
-  var requests = ['submitted', 'comments'].map(function(type) {
+  var requests = ['submitted', 'comments', 'upvoted', 'downvoted'].map(function(type) {
     return $.getJSON(`https://www.reddit.com/user/${user}/${type}.json?limit=100`)
     .then(function(response) {
       if (!response.data || !response.data.children.length) return [];
@@ -65,6 +76,12 @@ function fetchRedditData(user) {
   return $.when(...requests);
 }
 
+/**
+ * Formats the JSON data to be easily ready by d3.
+ * Also, count the number of contributions on each day.
+ * @param  {Object} data
+ * @return {Object}
+ */
 function formatData(data) {
   var oldestDate = new Date();
   var maxCount = 0;
@@ -100,6 +117,12 @@ function formatData(data) {
   };
 }
 
+/**
+ * Render the heatmap and any other svg elements
+ * @param  {Object} data
+ * @param  {Date} startYear
+ * @param  {Date} endYear
+ */
 function createHeatMap(data, startYear, endYear) {
   var width = 900;
   var height = 110;
