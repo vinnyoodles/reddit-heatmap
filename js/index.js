@@ -175,7 +175,8 @@ function createHeatMap(data, startYear, endYear) {
       // Add bootstrap's tooltip event listener.
       .call(() => $('[data-toggle="tooltip"]').tooltip({
         container: 'body',
-        placement: 'top'
+        placement: 'top',
+        position: { my: 'top' }
       }))
       // Add the colors to the grids.
       .filter((d) => dates.indexOf(d) > -1)
