@@ -8,15 +8,28 @@ var CELL_SIZE = 14;
 var NUMBER_OF_COLORS = 6;
 
 $(document).ready(function() {
+  $('form').submit(function(e) {
+    e.preventDefault();
+    var countVotes = $('.js-votes')[0].checked;
+    var user = $('.js-user-field').val();
+    window.location.href = `${window.location.origin}${window.location.pathname}?user=${user}&votes=${countVotes}`;
+  });
+
+  $('.js-vote-link').tooltip();
+
   var search = getSearchParameters();
   if (!search) return;
   // Begin fetch and render.
   $('.js-spinner').toggleClass('hidden', false);
   $('.js-user-field').val(search.user);
 
-  fetchRedditData(search.user)
+  var votes = search.votes === 'true';
+  $('.js-votes').attr('checked', votes);
+
+  fetchRedditData(search.user, votes)
     .done(function(posted, comments, upvoted, downvoted) {
-      if (!posted.length && !comments.length && !upvoted.length && !downvoted.length) return showEmptyMessage();
+      // Check for posted and commented data since those two should always be present.
+      if (!posted.length && !comments.length) return showEmptyMessage();
       var data = formatData({ posted, comments, upvoted, downvoted });
       $('.js-spinner').toggleClass('hidden', true);
       if (!data || data.startDate.toString() === 'Invalid Date') return showEmptyMessage();
@@ -28,7 +41,7 @@ $(document).ready(function() {
     })
     .fail(function(err) {
       $('.js-spinner').toggleClass('hidden', true);
-      console.log(err);
+      showEmptyMessage();
     });
 
 });
@@ -53,11 +66,13 @@ function getSearchParameters() {
 /**
  * Makes all the necessary API calls to fetch the data.
  * @param  {String} user
+ * @param  {Bool} votes
  * @return {Promise}
  */
-function fetchRedditData(user) {
-  // TODO(Vincent) Add upvoted and downvoted data.
-  var requests = ['submitted', 'comments', 'upvoted', 'downvoted'].map(function(type) {
+function fetchRedditData(user, votes) {
+  var types = ['submitted', 'comments'];
+  if (votes) types = types.concat(['upvoted', 'downvoted'])
+  var requests = types.map(function(type) {
     return $.getJSON(`https://www.reddit.com/user/${user}/${type}.json?limit=100`)
     .then(function(response) {
       if (!response.data || !response.data.children.length) return [];
@@ -88,7 +103,7 @@ function formatData(data) {
   var dateTable = {};
   for (var key in data) {
     var value = data[key];
-    if (!value || !value.length || !key) return;
+    if (!value || !value.length || !key) continue;
 
     var lastDate = new Date(value[value.length - 1].created * 1000);
     oldestDate = Math.min(oldestDate, lastDate);

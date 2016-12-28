@@ -39,6 +39,11 @@ body {
   margin-right: auto;
 }
 
+.checkbox {
+  text-align: center;
+  display: inherit;
+}
+
 /* Loading spinner */
 .loader {
   font-size: 10px;
