@@ -44,6 +44,10 @@ body {
   display: inherit;
 }
 
+.checkbox {
+  margin-top: 5px;
+}
+
 /* Loading spinner */
 .loader {
   font-size: 10px;
