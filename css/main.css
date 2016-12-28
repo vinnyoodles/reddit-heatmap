@@ -112,3 +112,12 @@ body {
     transform: rotate(360deg);
   }
 }
+
+.github-stars {
+  position: absolute;
+  right: 0;
+  top: 0;
+  margin-top: 20px;
+  width: 110px;
+  height: 20px;
+}
